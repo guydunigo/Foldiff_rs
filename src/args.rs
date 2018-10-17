@@ -25,6 +25,9 @@ impl Args {
             None => return Err(Error::NoGivenCompareFolder),
         };
 
-        Ok(Args { ref_folder, cmp_folder })
+        Ok(Args {
+            ref_folder,
+            cmp_folder,
+        })
     }
 }
