@@ -96,11 +96,11 @@ where
 
         if let entries_cmp::SameEntries::SameDirs = file_type {
             comparison.append(compare_folders(ref_path, cmp_path)?);
-        } else {
+        } else if let entries_cmp::SameEntries::SameFiles = file_type {
             if !are_files_equal(&ref_path, cmp_path)? {
                 comparison.different_files.push(ref_path);
             }
-        };
+        }
     }
 
     Ok(comparison)
