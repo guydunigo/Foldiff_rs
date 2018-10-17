@@ -1,23 +1,24 @@
 // use std::error::Error;
 // use std::fs::File;
 use std::fs;
-use std::fs::DirEntry;
 use std::io;
-// use std::io::prelude::*;
-use std::ffi::OsString;
-use std::fmt;
-use std::io::Error as IoError;
-use std::path::{Path, PathBuf};
+use std::io::prelude::*;
+use std::path::Path;
 
 // TODO: use SYMBOL and size...
 const SEPARATOR: &str = "---------------------------------";
+const BUF_SIZE: usize = 4096;
 
 pub mod args;
+pub mod comparison_report;
+mod entries_cmp;
+// TODO: better way to do that : ?
+type ComparisonReport = comparison_report::ComparisonReport;
 
 #[derive(Debug)]
 pub enum Error {
     ArgsError(args::Error),
-    IoError(IoError),
+    IoError(io::Error),
 }
 
 impl From<args::Error> for Error {
@@ -26,127 +27,41 @@ impl From<args::Error> for Error {
     }
 }
 
-impl From<IoError> for Error {
-    fn from(e: IoError) -> Self {
+impl From<io::Error> for Error {
+    fn from(e: io::Error) -> Self {
         Error::IoError(e)
     }
 }
 
-pub struct ComparisonReport {
-    absent_in_ref: Vec<PathBuf>,
-    absent_in_cmp: Vec<PathBuf>,
-}
+// TODO: trust that args are files?
+pub fn are_files_equal<P, Q>(ref_file: P, cmp_file: Q) -> Result<bool, io::Error>
+where
+    P: AsRef<Path>,
+    Q: AsRef<Path>,
+{
+    let mut ref_file = fs::File::open(ref_file)?;
+    let mut cmp_file = fs::File::open(cmp_file)?;
 
-//TODO: Show dirs differently ('/' at the end of path, ...)
-impl fmt::Display for ComparisonReport {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\n{}\n", SEPARATOR);
-        writeln!(f, "Files only in A")?;
-        write!(f, "{}\n", SEPARATOR);
-        for p in self.absent_in_cmp.iter() {
-            writeln!(f, ">> {}", p.to_str().unwrap())?;
+    let mut ref_buf = [0; BUF_SIZE];
+    let mut cmp_buf = [0; BUF_SIZE];
+
+    // TODO: Wouldn't a hash be faster?
+    Ok(loop {
+        let ref_read = ref_file.read(&mut ref_buf)?;
+        let cmp_read = cmp_file.read(&mut cmp_buf)?;
+
+        if ref_read == 0 || cmp_read == 0 {
+            break true;
+        // TODO: is it for read not to read the maximum size possible?
+        // (when there is still data to be read on the next call)
+        } else if ref_read != cmp_read || ref_buf[..ref_read] != cmp_buf[..cmp_read] {
+            break false;
         }
-
-        write!(f, "\n{}\n", SEPARATOR);
-        writeln!(f, "Files only in B")?;
-        write!(f, "{}\n", SEPARATOR);
-
-        for p in self.absent_in_ref.iter() {
-            writeln!(f, "<< {}", p.to_str().unwrap())?;
-        }
-
-        Ok(())
-    }
+    })
 }
 
-impl ComparisonReport {
-    pub fn append(&mut self, mut other: Self) {
-        self.absent_in_ref.append(&mut other.absent_in_ref);
-        self.absent_in_cmp.append(&mut other.absent_in_cmp);
-    }
-}
-
-#[derive(Debug)]
-enum SameEntries {
-    SameDirs,
-    SameFiles,
-    SameSymlinks,
-    Different,
-}
-impl SameEntries {
-    pub fn is_different(&self) -> bool {
-        if let SameEntries::Different = self {
-            true
-        } else {
-            false
-        }
-    }
-    pub fn is_same(&self) -> bool {
-        !self.is_different()
-    }
-}
-
-fn are_dir_entries_same(a: &DirEntry, b: &DirEntry) -> Result<SameEntries, io::Error> {
-    let a_type = a.file_type()?;
-    if a.file_name() == b.file_name() && a_type == b.file_type()? {
-        if a_type.is_dir() {
-            Ok(SameEntries::SameDirs)
-        } else if a_type.is_file() {
-            Ok(SameEntries::SameFiles)
-        } else {
-            Ok(SameEntries::SameSymlinks)
-        }
-    } else {
-        Ok(SameEntries::Different)
-    }
-}
-
-fn get_absent_entries(
-    ref_content: &[DirEntry],
-    cmp_content: &[DirEntry],
-) -> Result<Vec<PathBuf>, IoError> {
-    let mut res = Vec::new();
-
-    for ref_e in ref_content.iter() {
-        // TODO: Add to a list of errors ?
-        let mut found = false;
-        for cmp_e in cmp_content.iter() {
-            if are_dir_entries_same(ref_e, cmp_e)?.is_same() {
-                found = true;
-                break;
-            }
-        }
-
-        if !found {
-            res.push(ref_e.path());
-        }
-    }
-
-    Ok(res)
-}
-
-// TODO: Resolve or separate symlinks ?
-fn get_present_entries(
-    a_content: &[DirEntry],
-    b_content: &[DirEntry],
-) -> Result<Vec<(SameEntries, OsString)>, IoError> {
-    let mut res = Vec::new();
-
-    for a_e in a_content.iter() {
-        // TODO: Add to a list of errors ?
-        for b_e in b_content.iter() {
-            let are_eq = are_dir_entries_same(a_e, b_e)?;
-            if are_eq.is_same() {
-                res.push((are_eq, a_e.file_name()));
-                break;
-            }
-        }
-    }
-
-    Ok(res)
-}
-
-pub fn compare_folders<P, Q>(ref_folder: P, cmp_folder: Q) -> Result<ComparisonReport, IoError>
+// TODO: trust that args are folders?
+pub fn compare_folders<P, Q>(ref_folder: P, cmp_folder: Q) -> Result<ComparisonReport, io::Error>
 where
     P: AsRef<Path>,
     Q: AsRef<Path>,
@@ -164,11 +79,12 @@ where
     }
 
     let mut comparison = ComparisonReport {
-        absent_in_cmp: get_absent_entries(&ref_content, &cmp_content)?,
-        absent_in_ref: get_absent_entries(&cmp_content, &ref_content)?,
+        absent_in_cmp: entries_cmp::get_absent_entries(&ref_content, &cmp_content)?,
+        absent_in_ref: entries_cmp::get_absent_entries(&cmp_content, &ref_content)?,
+        different_files: Vec::new(),
     };
 
-    let present_entries = get_present_entries(&ref_content, &cmp_content)?;
+    let present_entries = entries_cmp::get_present_entries(&ref_content, &cmp_content)?;
 
     // TODO: Parallel ?
     for (file_type, file_name) in present_entries {
@@ -178,17 +94,19 @@ where
         ref_path.push(&file_name);
         cmp_path.push(&file_name);
 
-        if let SameEntries::SameDirs = file_type {
+        if let entries_cmp::SameEntries::SameDirs = file_type {
             comparison.append(compare_folders(ref_path, cmp_path)?);
         } else {
-            //TODO: compare_files(ref_path, cmp_path)?
+            if !are_files_equal(&ref_path, cmp_path)? {
+                comparison.different_files.push(ref_path);
+            }
         };
     }
 
     Ok(comparison)
 }
 
-pub fn run(args: args::Args) -> Result<(), IoError> {
+pub fn run(args: args::Args) -> Result<(), io::Error> {
     // Open file
     print!("{}\n", SEPARATOR);
     println!("Folder A : '{}'", args.ref_folder);
