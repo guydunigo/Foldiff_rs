@@ -106,9 +106,9 @@ where
     Ok(comparison)
 }
 
-pub fn run(args: args::Args) -> Result<(), io::Error> {
+pub fn run(args: &args::Args) -> Result<(), io::Error> {
     // Open file
-    print!("{}\n", SEPARATOR);
+    println!("{}", SEPARATOR);
     println!("Folder A : '{}'", args.ref_folder);
     println!("Folder B : '{}'", args.cmp_folder);
 

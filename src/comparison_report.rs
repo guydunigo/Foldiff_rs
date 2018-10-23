@@ -12,24 +12,24 @@ pub struct ComparisonReport {
 impl fmt::Display for ComparisonReport {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // TODO: Subfunction
-        write!(f, "\n{}\n", SEPARATOR);
+        writeln!(f, "\n{}", SEPARATOR);
         writeln!(f, "Elements only in A")?;
-        write!(f, "{}\n", SEPARATOR);
+        writeln!(f, "{}", SEPARATOR);
         for p in self.absent_in_cmp.iter() {
             writeln!(f, ">> {}", p.to_str().unwrap())?;
         }
 
-        write!(f, "\n{}\n", SEPARATOR);
+        writeln!(f, "\n{}", SEPARATOR);
         writeln!(f, "Elements only in B")?;
-        write!(f, "{}\n", SEPARATOR);
+        writeln!(f, "{}", SEPARATOR);
 
         for p in self.absent_in_ref.iter() {
             writeln!(f, "<< {}", p.to_str().unwrap())?;
         }
 
-        write!(f, "\n{}\n", SEPARATOR);
+        writeln!(f, "\n{}", SEPARATOR);
         writeln!(f, "Files that are different")?;
-        write!(f, "{}\n", SEPARATOR);
+        writeln!(f, "{}", SEPARATOR);
 
         // TODO: truncate the part from reference ?
         for p in self.different_files.iter() {
