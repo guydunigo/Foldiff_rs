@@ -73,7 +73,7 @@ END
 FILE "Routes.txt"
 
 	PARSE PRE_REGEX "s/\(.*\r\n\)*\(IPv4 Table de routage\r\n=*\r\n\([^=]*\r\n\)*=*\r\n\)\(.*\r\n\)*/\2/"
-	
+
 	PARSE ONLY
 END
 
