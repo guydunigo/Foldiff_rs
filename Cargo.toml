@@ -1,8 +1,18 @@
 [package]
 name = "foldiff"
-version = "0.2.0"
+description = "Easily configurable tool to get the difference between a reference folder and others"
 authors = ["GONI Guillaume <gdn3@live.fr>"]
+
+version = "0.2.0"
 edition = "2018"
+
+documentation = "https://github.com/guydunigo/Foldiff_rs"
+homepage = "https://github.com/guydunigo/Foldiff_rs"
+repository = "https://github.com/guydunigo/Foldiff_rs"
+readme = "README.md"
+keywords = ["diff", "compare", "directories", "folders"]
+categories = ["command-line-utilities", "filesystem"]
+license = "GPL-3.0"
 
 exclude = [
     "test/test_*/*",
