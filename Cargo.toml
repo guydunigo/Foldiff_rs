@@ -4,4 +4,8 @@ version = "0.2.0"
 authors = ["GONI Guillaume <gdn3@live.fr>"]
 edition = "2018"
 
+exclude = [
+    "test/test_*/*",
+]
+
 [dependencies]
