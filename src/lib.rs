@@ -61,7 +61,11 @@ where
 }
 
 // TODO: trust that args are folders?
-pub fn compare_folders<P, Q>(ref_folder: P, cmp_folder: Q) -> Result<ComparisonReport, io::Error>
+pub fn compare_folders<P, Q>(
+    ref_folder: P,
+    cmp_folder: Q,
+    compare_content: bool,
+) -> Result<ComparisonReport, io::Error>
 where
     P: AsRef<Path>,
     Q: AsRef<Path>,
@@ -95,9 +99,9 @@ where
         cmp_path.push(&file_name);
 
         if let entries_cmp::SameEntries::SameDirs = file_type {
-            comparison.append(compare_folders(ref_path, cmp_path)?);
+            comparison.append(compare_folders(ref_path, cmp_path, compare_content)?);
         } else if let entries_cmp::SameEntries::SameFiles = file_type {
-            if !are_files_equal(&ref_path, cmp_path)? {
+            if compare_content && !are_files_equal(&ref_path, cmp_path)? {
                 comparison.different_files.push(ref_path);
             }
         }
@@ -115,7 +119,7 @@ pub fn run(args: &args::Args) -> Result<(), io::Error> {
     let ref_folder = Path::new(args.ref_folder.as_str());
     let cmp_folder = Path::new(args.cmp_folder.as_str());
 
-    let res = compare_folders(ref_folder, cmp_folder)?;
+    let res = compare_folders(ref_folder, cmp_folder, args.compare_content)?;
 
     println!("{}", res);
 

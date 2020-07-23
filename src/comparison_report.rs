@@ -12,28 +12,30 @@ pub struct ComparisonReport {
 impl fmt::Display for ComparisonReport {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // TODO: Subfunction
-        writeln!(f, "\n{}", SEPARATOR);
+        writeln!(f, "\n{}", SEPARATOR)?;
         writeln!(f, "Elements only in A")?;
-        writeln!(f, "{}", SEPARATOR);
+        writeln!(f, "{}", SEPARATOR)?;
         for p in self.absent_in_cmp.iter() {
             writeln!(f, ">> {}", p.to_str().unwrap())?;
         }
 
-        writeln!(f, "\n{}", SEPARATOR);
+        writeln!(f, "\n{}", SEPARATOR)?;
         writeln!(f, "Elements only in B")?;
-        writeln!(f, "{}", SEPARATOR);
+        writeln!(f, "{}", SEPARATOR)?;
 
         for p in self.absent_in_ref.iter() {
             writeln!(f, "<< {}", p.to_str().unwrap())?;
         }
 
-        writeln!(f, "\n{}", SEPARATOR);
-        writeln!(f, "Files that are different")?;
-        writeln!(f, "{}", SEPARATOR);
+        if !self.different_files.is_empty() {
+            writeln!(f, "\n{}", SEPARATOR)?;
+            writeln!(f, "Files that are different")?;
+            writeln!(f, "{}", SEPARATOR)?;
 
-        // TODO: truncate the part from reference ?
-        for p in self.different_files.iter() {
-            writeln!(f, "-- {}", p.to_str().unwrap())?;
+            // TODO: truncate the part from reference ?
+            for p in self.different_files.iter() {
+                writeln!(f, "-- {}", p.to_str().unwrap())?;
+            }
         }
 
         Ok(())
