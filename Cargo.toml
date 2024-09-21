@@ -4,7 +4,7 @@ description = "Easily configurable tool to get the difference between a referenc
 authors = ["GONI Guillaume <gdn3@live.fr>"]
 
 version = "0.2.0"
-edition = "2018"
+edition = "2021"
 
 documentation = "https://github.com/guydunigo/Foldiff_rs"
 homepage = "https://github.com/guydunigo/Foldiff_rs"
